@@ -1,7 +1,4 @@
-"""
-TEMPLATE FOR BUIDING DIY DATASET
-e.g.
-Split the SIGNS dataset into train/val/test and resize images to 64x64.
+"""Split the SIGNS dataset into train/val/test and resize images to 64x64.
 
 The SIGNS dataset comes into the following format:
     train_signs/
@@ -30,15 +27,16 @@ from tqdm import tqdm
 SIZE = 64
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', default='data/TODO_ORIGIN_DIR', help="Directory with the SIGNS dataset")
-parser.add_argument('--output_dir', default='data/TODO_OUTPUT_DI', help="Where to write the new data")
+parser.add_argument('--data_dir', default='data/TODO', help="Directory with the SIGNS dataset")
+parser.add_argument('--output_dir', default='data/TODO', help="Where to write the new data")
 
 
-def resize_and_save(filename, output_dir, size=SIZE):
+def resize_and_save(filename, output_dir, size=SIZE, resize=False):
     """Resize the image contained in `filename` and save it to the `output_dir`"""
     image = Image.open(filename)
     # Use bilinear interpolation instead of the default "nearest neighbor" method
-    image = image.resize((size, size), Image.BILINEAR)
+    if resize:
+        image = image.resize((size, size), Image.BILINEAR)
     image.save(os.path.join(output_dir, filename.split('/')[-1]))
 
 
@@ -48,15 +46,15 @@ if __name__ == '__main__':
     assert os.path.isdir(args.data_dir), "Couldn't find the dataset at {}".format(args.data_dir)
 
     # Define the data directories
-    train_data_dir = os.path.join(args.data_dir, 'train_signs')
-    test_data_dir = os.path.join(args.data_dir, 'test_signs')
+    train_data_dir = os.path.join(args.data_dir, 'train')
+    test_data_dir = os.path.join(args.data_dir, 'test')
 
     # Get the filenames in each directory (train and test)
     filenames = os.listdir(train_data_dir)
-    filenames = [os.path.join(train_data_dir, f) for f in filenames if f.endswith('.jpg')]
+    filenames = [os.path.join(train_data_dir, f) for f in filenames if f.endswith('.png')]
 
     test_filenames = os.listdir(test_data_dir)
-    test_filenames = [os.path.join(test_data_dir, f) for f in test_filenames if f.endswith('.jpg')]
+    test_filenames = [os.path.join(test_data_dir, f) for f in test_filenames if f.endswith('.png')]
 
     # Split the images in 'train_signs' into 80% train and 20% val
     # Make sure to always shuffle with a fixed seed so that the split is reproducible
@@ -79,7 +77,7 @@ if __name__ == '__main__':
 
     # Preprocess train, val and test
     for split in ['train', 'val', 'test']:
-        output_dir_split = os.path.join(args.output_dir, '{}_signs'.format(split))
+        output_dir_split = os.path.join(args.output_dir, '{}_process'.format(split))
         if not os.path.exists(output_dir_split):
             os.mkdir(output_dir_split)
         else:
