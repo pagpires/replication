@@ -1,0 +1,21 @@
+{
+    "_PARAMS_model":"PLACEHOLDER",
+    "base_channels": 16,
+    "block_type": "basic",
+    "depth": 110,
+
+    "_PARAMS_optim":"PLACEHOLDER",
+    "learning_rate": 1e-3,
+    "batch_size": 128,
+    "num_epochs": 10,
+    "dropout_rate":0.8,
+    "use_bn": true,
+
+    "_PARAMS_data":"PLACEHOLDER",
+    "n_classes" : 10,
+    "input_shape" : [1, 3, 32, 32],
+
+    "_PARAMS_other":"PLACEHOLDER",
+    "save_summary_steps": 100,
+    "num_workers": 4
+}
