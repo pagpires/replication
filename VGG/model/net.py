@@ -6,7 +6,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-
 def initialize_weights(module):
     if isinstance(module, nn.Conv2d):
         nn.init.kaiming_normal_(module.weight.data, mode='fan_out')
@@ -19,26 +18,23 @@ def initialize_weights(module):
 
 
 class Net(nn.Module):
-    def __init__(self, config):
-        super(Network, self).__init__()
+    """ 
+    Implementation of VGG model
+    """
+    def __init__(self, params):
+        super(Net, self).__init__()
 
-        input_shape = config['input_shape']
-        n_classes = config['n_classes']
+        # set up nn configuration, may be better if kept in a sep config file
+        n_classes = params.n_classes
+        input_shape = params.input_shape
 
-        self.use_bn = config['use_bn']
-        n_channels = config['n_channels']
-        n_layers = config['n_layers']
+        self.use_bn = params.use_bn
 
-        self.stage1 = self._make_stage(input_shape[1], n_channels[0],
-                                       n_layers[0])
-        self.stage2 = self._make_stage(n_channels[0], n_channels[1],
-                                       n_layers[1])
-        self.stage3 = self._make_stage(n_channels[1], n_channels[2],
-                                       n_layers[2])
-        self.stage4 = self._make_stage(n_channels[2], n_channels[3],
-                                       n_layers[3])
-        self.stage5 = self._make_stage(n_channels[3], n_channels[4],
-                                       n_layers[4])
+        self.stage1 = self._make_stage(3, 64, 2)
+        self.stage2 = self._make_stage(64, 128, 2)
+        self.stage3 = self._make_stage(128, 256, 3)
+        self.stage4 = self._make_stage(256, 512, 3)
+        self.stage5 = self._make_stage(512, 512, 3)
 
         # compute conv feature size
         with torch.no_grad():
@@ -53,22 +49,14 @@ class Net(nn.Module):
     def _make_stage(self, in_channels, out_channels, n_blocks):
         stage = nn.Sequential()
         for index in range(n_blocks):
+            
             if index == 0:
-                conv = nn.Conv2d(
-                    in_channels,
-                    out_channels,
-                    kernel_size=3,
-                    stride=1,
-                    padding=1,
-                )
+                input_channel = in_channels
             else:
-                conv = nn.Conv2d(
-                    out_channels,
-                    out_channels,
-                    kernel_size=3,
-                    stride=1,
-                    padding=1,
-                )
+                input_channel = out_channels
+            
+            conv = nn.Conv2d(input_channel, out_channels, kernel_size=3, stride=1, padding=1)
+            
             stage.add_module('conv{}'.format(index), conv)
             if self.use_bn:
                 stage.add_module('bn{}'.format(index),
@@ -89,8 +77,24 @@ class Net(nn.Module):
         x = self._forward_conv(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
-        return x
+        # compute log soft max for bettter num stability
+        return F.log_softmax(x, dim=1)
 
+
+def loss_fn(outputs, labels):
+    """
+    Compute the cross entropy loss given outputs and labels.
+
+    Args:
+        outputs: (Variable) dimension batch_size x 6 - output of the model
+        labels: (Variable) dimension batch_size, where each element is a value in [0, 1, 2, 3, 4, 5]
+
+    Returns:
+        loss (Variable): cross entropy loss for all images in the batch
+
+    """
+    num_examples = outputs.size()[0]
+    return -torch.sum(outputs[range(num_examples), labels])/num_examples
 
 
 def accuracy(outputs, labels):
@@ -98,8 +102,8 @@ def accuracy(outputs, labels):
     Compute the accuracy, given the outputs and labels for all images.
 
     Args:
-        outputs: (np.ndarray) dimension batch_size x 6 - log softmax output of the model
-        labels: (np.ndarray) dimension batch_size, where each element is a value in [0, 1, 2, 3, 4, 5]
+        outputs: (np.ndarray) dimension batch_size x len(labels) - log softmax output of the model
+        labels: (np.ndarray) dimension batch_size
 
     Returns: (float) accuracy in [0,1]
     """
